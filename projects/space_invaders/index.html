@@ -1,0 +1,1496 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>JS Game</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <style>
+        * {
+            overflow: hidden;
+            padding: 0;
+            margin: 0
+        }
+    </style>
+    <script src="pixi.js"></script>
+    <script src="particles.js"></script>
+    <script src="howler.js"></script>
+</head>
+
+<body>
+    <script>
+        ////
+
+        //applyFilters([blurFilter1, deathEffectFilter,nightVisionFilter]);
+
+        var innerWidth;
+        var innerHeight;
+        var screenRatio = innerWidth / innerHeight;
+
+
+        var shouldHideCursor = false;
+        var isMouseOutOfCanvas;
+        var currentMouseX;
+        var currentMouseY;
+        var keysPressed = {};
+
+        var renderer;
+        var stage;
+
+        var graphics;
+        var barGraphics;
+        var mapGraphics;
+
+        var shouldDrawBigMap = false;
+
+        var background;
+
+        var state = play;
+
+        var audio;
+
+        var isShooting = false;
+        var player;
+        var entities;
+        var projectiles;
+
+        var blurFilter1 = new PIXI.filters.BlurFilter();
+        var deathEffectFilter = new PIXI.filters.ColorMatrixFilter();
+        var dayNightFilter = new PIXI.filters.ColorMatrixFilter();
+        var nightVisionFilter = new PIXI.filters.ColorMatrixFilter();
+
+        var hud;
+        var skullIcon = "\u2620";
+
+        var visualsContainer;
+        var menusContainer;
+        var mainMenuContainer;
+        var pauseMenuContainer;
+        var gameOverMenuContainer;
+        var texts;
+
+        var idleTimeout;
+
+
+
+        ////
+
+        function setup() {
+            setupRendererAndStage();
+            setupMouseCoordinates();
+
+            setupBackground();
+            setupGraphics();
+            setupAudio();
+            setupPlayer();
+            setupEntities();
+            setupProjectiles();
+
+            setupHUD();
+            setupEventListeners();
+
+            setupMenus();
+            setupAddChildrenToStage();
+
+
+
+            resetScales();
+            resetPositions();
+            resetDimensions();
+
+
+            setupGameLoop();
+        }
+
+        setup();
+
+        ////->> SETUP////
+        function setupBackground() {
+            background = new PIXI.TilingSprite.fromImage("water.jpg", innerWidth * 2, innerHeight * 2);
+            background.scale.original = .5;
+            background.scale.set(background.scale.original, background.scale.original);
+            background.position.x = 0;
+            background.position.y = 0;
+            background.tilePosition.x = 0;
+            background.tilePosition.y = 0;
+        }
+
+        function setupAudio() {
+            audio = new Object();
+            audio.playerShot = new Howl({
+                src: ['playerShot.wav']
+            });
+            audio.enemyShot = new Howl({
+                src: ['enemyShot.wav'],
+                volume: .2
+            });
+
+            audio.explosion = new Howl({
+                src: ['explosion.wav'],
+                volume: .2
+            });
+
+            audio.recharge = new Howl({
+                src: ['recharge.wav']
+            });
+            audio.projectileHit = new Howl({
+                src: ['impact.wav']
+            });
+            audio.windLong = new Howl({
+                src: ['windLong.wav'],
+                volume: .3,
+                autoplay: true,
+                loop: true,
+                onload: function() {
+                    audio.windLong.seek(randomInt(0, audio.windLong.duration()));
+                    audio.windLong.fade(0.0, audio.windLong.volume(), 4000);
+                }
+            });
+        }
+
+        function setupGraphics() {
+            graphics = new PIXI.Graphics();
+            barGraphics = new PIXI.Graphics();
+            mapGraphics = new PIXI.Graphics();
+        }
+
+        function setupPlayer() {
+            player = new PIXI.Sprite.fromImage("playerSprite1.png");
+            player.anchor.set(.5, .5)
+
+            player.scale.original = .2;
+            player.scale.double = player.scale.original * 2;
+            player.scale.set(player.scale.original, player.scale.original);
+
+            player.hasPreviouslyUsedKeyboard = true;
+            player.speed = 2.5;
+            player.health = 0;
+            player.canShoot = true;
+            player.delayedRotation = 0;
+            player.projectileImage = "laser.png";
+            player.projectileFiringRate = 500;
+            player.projectileSpeed = 25;
+            player.recenterMoveSpeedORIGINAL = 20;
+            player.recenterMoveSpeed = player.recenterMoveSpeedORIGINAL;
+            player.position.x = innerWidth / 2;
+            player.position.y = innerHeight * 1.2;
+        }
+
+        function setupEntities() {
+            entities = {
+                container: new PIXI.Container(),
+                maxScale: 1,
+                speed: 1, // GREATER VALUE = FASTER;
+                projectileSpeedORIGINAL: 25,
+                hasProjectilesTimePassed: true,
+                projectileFiringRate: 2500, // SMALLER VALUE IS FASTER SHOOTING;
+                projectileSpeed: 1,
+                maxHealth: 3, // HEALTH IS DECREASED WITH SHOT BY -1. IF 0, ENEMY IS DEAD;
+                spawnRateORIGINAL: 4000, // EVERY X MILLISECONDS; 1000ms = 1sec;
+                killedCount: 0
+            }
+            entities.spawnRate = entities.spawnRateORIGINAL;
+        }
+
+        function setupProjectiles() {
+            projectiles = {
+                array: [],
+                container: new PIXI.Container(),
+                projectileSpeedORIGINAL: 25,
+                hasProjectilesTimePassed: true
+            }
+        }
+
+        function setupRendererAndStage() {
+            renderer = PIXI.autoDetectRenderer(innerWidth, innerHeight);
+            stage = new PIXI.Container();
+            stage.interactive = true;
+            document.body.appendChild(renderer.view);
+            renderer.autoResize = true;
+        }
+
+        function setupGameLoop() {
+            showOrHideCursor();
+
+            function gameLoop() {
+                requestAnimationFrame(gameLoop);
+                state();
+                renderer.render(stage);
+            }
+            gameLoop();
+        }
+
+        function setupMouseCoordinates() {
+            currentMouseX = renderer.plugins.interaction.mouse.global.x;
+            currentMouseY = renderer.plugins.interaction.mouse.global.y;
+        }
+
+        function setupHUD() {
+            hud = new PIXI.Container();
+
+            ///
+            hud.textHealthBar = new PIXI.Text("\uD83D\uDC9C\uD83D\uDC9C\uD83D\uDC9C\uD83D\uDC9C", {
+                font: "30px Arial",
+                fill: "0xa83f39"
+            });
+            hud.textHealthBar.anchor.set(.5, 1);
+
+            ///
+            hud.textKills = new PIXI.Text(entities.killedCount + skullIcon, {
+                font: "35px Arial",
+                fill: "white"
+            });
+            hud.textKills.anchor.set(1, 1);
+
+            ///
+            hud.textDistanceTravelled = new PIXI.Text("0", {
+                font: "35px Arial",
+                fill: "white"
+            });
+            hud.textDistanceTravelled.anchor.set(0, 1);
+
+            var maxWidthORIGINAL = 280;
+            hud.regenBar = {
+                maxWidthORIGINAL: maxWidthORIGINAL,
+                maxWidth: maxWidthORIGINAL,
+                width: maxWidthORIGINAL / 1.5,
+                height: 18,
+                shouldRecharge: true,
+                color: 0xFFFFFF,
+                changeColorIntervalIsRunning: false,
+            }
+
+            hud.map = {
+                margin: 5,
+                width: 100,
+                height: 100,
+                displayMultiplierORIGINAL: 2,
+                displayMultiplier: 2,
+                blipSize: Math.PI
+            }
+
+            hud.addChild(barGraphics, mapGraphics, hud.textHealthBar, hud.textKills, hud.textDistanceTravelled);
+        }
+
+        function setupMenus() {
+            texts = new Object();
+            ///
+            texts.gameOver = new PIXI.Text("GAME OVER", {
+                font: "75px Arial",
+                fill: "white"
+            });
+            texts.gameOver.anchor.set(.5, .5);
+
+
+            ///
+            texts.pauseMenu = new PIXI.Text("PAUSE MENU", {
+                font: "75px Arial",
+                fill: "white"
+            });
+            texts.pauseMenu.anchor.set(.5, .5);
+
+            //
+
+
+
+            texts.play = new PIXI.Text("PLAY", {
+                font: "65px Arial",
+                fill: "white"
+            });
+            texts.play.anchor.set(.5, .5);
+            texts.play.interactive = true;
+            texts.play.on("click", resumeGame);
+
+            texts.gameName = new PIXI.Text("SPACE\nINVADERS", {
+                font: "75px Arial",
+                fill: "white",
+                align: "center"
+            });
+            texts.gameName.anchor.set(.5, .5);
+
+            texts.resume = new PIXI.Text("RESUME", {
+                font: "65px Arial",
+                fill: "white"
+            });
+            texts.resume.anchor.set(.5, .5);
+            texts.resume.interactive = true;
+            texts.resume.on("click", resumeGame);
+
+            texts.restart = new PIXI.Text("RESTART", {
+                font: "65px Arial",
+                fill: "white"
+            });
+            texts.restart.anchor.set(.5, .5);
+            texts.restart.interactive = true;
+            texts.restart.on("click", restartGame);
+
+            texts.options = new PIXI.Text("OPTIONS", {
+                font: "65px Arial",
+                fill: "white"
+            });
+            texts.options.anchor.set(.5, .5);
+            texts.options.interactive = true;
+            texts.options.on("click", function() {
+                ///TODO
+            })
+
+            texts.mainMenu = new PIXI.Text("MAIN MENU", {
+                font: "65px Arial",
+                fill: "white"
+            });
+            texts.mainMenu.anchor.set(.5, .5);
+            texts.mainMenu.interactive = true;
+            texts.mainMenu.on("click", function() {
+                restartGame();
+
+                stage.removeChild(graphics, hud);
+                stage.addChild(graphics, menusContainer);
+                mainMenuContainer = new PIXI.Container();
+                mainMenuContainer.addChild(texts.gameName, texts.play, texts.options)
+                menusContainer.removeChildren();
+                menusContainer.addChild(mainMenuContainer);
+                state = mainMenu;
+            });
+        }
+
+        function setupEventListeners() {
+            document.addEventListener('mousedown', onMouseDown);
+            document.addEventListener('mouseup', onMouseUp);
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseout', onMouseOut);
+
+            document.addEventListener('keydown', onKeyDown);
+            document.addEventListener('keyup', onKeyUp);
+            window.addEventListener("resize", onResize);
+
+
+        }
+
+        function setupAddChildrenToStage() {
+            visualsContainer = new PIXI.Container();
+            menusContainer = new PIXI.Container();
+            visualsContainer.addChild(background, graphics, player, entities.container)
+            stage.addChild(visualsContainer, hud, menusContainer);
+        }
+        ////<--SETUP////
+
+
+
+        ////--> INPUT////
+        function onKeyDown(event) {
+            showOrHideCursor();
+            clearTimeout(idleTimeout);
+            shouldMoveDown = false;
+            switch (event.keyCode) {
+                case 32:
+                    if (!keysPressed[event.keyCode]) {
+                        onMouseDown();
+                    }
+
+                    keysPressed[event.keyCode] = false;
+                    break;
+                case 77:
+                    if (state === play) {
+                        blurFilter1.blur = 12;
+                        applyFilters([blurFilter1]);
+                        shouldDrawBigMap = true;
+                    }
+                    break;
+                case 104:
+                    if (shouldDrawBigMap) {
+                        hud.map.displayMultiplier -= .05;
+                    }
+
+                    break;
+                case 98:
+                    if (shouldDrawBigMap) {
+                        hud.map.displayMultiplier += .05;
+                    }
+                    break;
+            }
+            keysPressed[event.keyCode] = true;
+        }
+
+        function onKeyUp(event) {
+            idleTimeout = setTimeout(function() {
+                player.recenterMoveSpeed = .2;
+                shouldMoveDown = true;
+            }, 5000);
+
+            keysPressed[event.keyCode] = false;
+            switch (event.keyCode) {
+                case 32:
+                    onMouseUp();
+                    break;
+                case 82:
+                    restartGame();
+                    break;
+                case 27:
+                    if (state === play) {
+                        state = pauseMenu;
+
+                        stage.removeChild(graphics, hud);
+                        pauseMenuContainer = new PIXI.Container();
+                        pauseMenuContainer.addChild(texts.pauseMenu, texts.resume, texts.options, texts.mainMenu);
+                        menusContainer.removeChildren()
+                        menusContainer.addChild(pauseMenuContainer);
+                        stage.addChild(graphics, menusContainer);
+                        audio.windLong.pause();
+
+                    } else if (state === pauseMenu) {
+                        resumeGame();
+                    }
+                    break;
+                case 77:
+                    applyFilters();
+                    shouldDrawBigMap = false;
+                    hud.map.displayMultiplier = hud.map.displayMultiplierORIGINAL;
+                    break;
+
+            }
+        }
+
+        function applyFilters(filters) {
+
+            for (i = 0; i < stage.children.length; i++) {
+                var mapGraphicsIndex = stage.getChildIndex(hud);
+                var graphicsIndex = stage.getChildIndex(graphics);
+                if (i == mapGraphicsIndex) {
+
+                } else {
+                    stage.getChildAt(i).filters = filters;
+                }
+
+            }
+
+        }
+
+        function onMouseMove() {
+
+            console.log(stage.children);
+            player.hasPreviouslyUsedKeyboard = false;
+
+            isMouseOutOfCanvas = false;
+            if (!keysPressed[87] && !keysPressed[65] && !keysPressed[83] && !keysPressed[68]) {
+                player.recenterMoveSpeed = player.recenterMoveSpeedORIGINAL;
+            }
+        }
+
+        function onMouseOut() {
+            showOrHideCursor();
+            player.hasPreviouslyUsedKeyboard = false;
+            isMouseOutOfCanvas = true;
+        }
+
+        function onMouseDown() {
+
+            var nonBurstFiringRate = player.projectileFiringRate + player.projectileFiringRate / 10;
+
+            mouseHoldTimeout = setTimeout(function() {
+
+                isHoldingMouse = true;
+
+            }, nonBurstFiringRate);
+
+
+
+            if (entities.hasProjectilesTimePassed && state === play) {
+                addProjectilesOnMouseHold();
+                entities.hasProjectilesTimePassed = false;
+                setTimeout(function setTrue() {
+                    entities.hasProjectilesTimePassed = true;
+
+                }, nonBurstFiringRate);
+            }
+
+            addProjectilesOnMouseHoldInterval = setInterval(addProjectilesOnMouseHold, player.projectileFiringRate);
+        }
+
+        function onMouseUp() {
+            clearTimeout(mouseHoldTimeout);
+            isHoldingMouse = false;
+
+            clearInterval(addProjectilesOnMouseHoldInterval);
+        }
+        ////<-- INPUT////
+
+        function healthBarRecheck() {
+
+            switch (player.health) {
+                case 0:
+                    hud.textHealthBar.text = "\uD83D\uDC9C\uD83D\uDC9C\uD83D\uDC9C\uD83D\uDC9C";
+
+                    player.tint = 0xFFFFFF;
+                    break;
+                case 1:
+                    hud.textHealthBar.text = "\uD83D\uDC94\uD83D\uDC9C\uD83D\uDC9C\uD83D\uDC9C";
+
+                    player.tint = 0xFFD4D4;
+                    break;
+                case 2:
+                    hud.textHealthBar.text = "\uD83D\uDC94\uD83D\uDC94\uD83D\uDC9C\uD83D\uDC9C";
+                    player.tint = 0xFEC9C9;
+
+                    break;
+                case 3:
+                    hud.textHealthBar.text = "\uD83D\uDC94\uD83D\uDC94\uD83D\uDC94\uD83D\uDC9C";
+                    player.tint = 0xFEBEBE;
+                    break;
+                case 4:
+                    hud.textHealthBar.text = "\uD83D\uDC94\uD83D\uDC94\uD83D\uDC94\uD83D\uDC94";
+                    player.tint = 0xFEB4B4;
+
+                    audio.explosion.play();
+
+                    visualsContainer.setChildIndex(graphics, visualsContainer.children.length - 1);
+                    gameOverMenuContainer = new PIXI.Container();
+                    gameOverMenuContainer.addChild(texts.gameOver, texts.restart, texts.options, texts.mainMenu);
+                    menusContainer.removeChildren();
+                    menusContainer.addChild(gameOverMenuContainer);
+                    stage.addChild(menusContainer);
+
+                    audio.windLong.stop();
+
+                    state = gameOverMenu;
+                    break;
+            }
+        }
+
+        var count = 0;
+
+        function showPlayerDeathEffect() {
+            if (!keysPressed[77]) {
+                count += 0.02 * player.health / 3;
+                var multiplier = 1 - player.health / 20 /// between 0 and 1;
+                var brightness = multiplier + Math.cos(count) * (1 - multiplier);
+                console.log(brightness);
+                deathEffectFilter.brightness(brightness);
+                blurFilter1.blur = Math.sin(count) * player.health / 4;
+            }
+        }
+
+        function toggleNightVision() {
+            if (player.isUsingNightVision) {
+                nightVisionFilter.enabled = false;
+            } else {
+                nightVisionFilter.enabled = false;
+                nightVisionFilter.predator(.2);
+            }
+        }
+
+        ///TODO VINTAGE deathEffectFilter.vintage(1);
+        ///TODO NIGHT deathEffectFilter.night(1); or .brightness
+
+        var shouldMoveRight = false;
+        var shouldMoveUp = false;
+        var shouldMoveDown = false;
+        var shouldMoveLeft = false;
+
+        var addProjectilesOnMouseHoldInterval;
+        var isHoldingMouse = false;
+
+        var mouseHoldTimeout;
+
+        function addProjectilesOnMouseHold() {
+            if (player.canShoot) {
+                entities.addProjectile("player", player.projectileImage);
+            } else if (!player.canShoot && hud.regenBar.shouldRecharge) {
+                var originalColor = hud.regenBar.color;
+                var newColor = 0xA83F39;
+
+                if (!hud.regenBar.changeColorIntervalIsRunning) {
+                    hud.regenBar.color = newColor;
+                    var changeColorInterval = setInterval(function() {
+                        hud.regenBar.changeColorIntervalIsRunning = true;
+                        if (hud.regenBar.color === newColor) {
+                            hud.regenBar.color = originalColor;
+                        } else {
+                            hud.regenBar.color = newColor;
+                        }
+                        if (player.canShoot && !hud.regenBar.shouldRecharge) {
+                            hud.regenBar.color = originalColor;
+                            clearInterval(changeColorInterval);
+                            hud.regenBar.changeColorIntervalIsRunning = false;
+                        }
+                    }, 500);
+                }
+
+
+            }
+        }
+
+        function showOrHideCursor() {
+            if (shouldHideCursor) {
+                document.body.style.cursor = 'none';
+            } else {
+                document.body.style.cursor = 'pointer';
+            }
+        }
+
+        function restartGame() {
+            clearGraphics();
+
+            showOrHideCursor();
+
+            state = play;
+
+
+            visualsContainer.setChildIndex(graphics, 1);
+
+            hud.textDistanceTravelled.text = "0";
+            player.health = 0;
+            healthBarRecheck();
+
+            entities.container.removeChildren();
+
+            menusContainer.removeChildren();
+
+            audio.windLong.play();
+            audio.windLong.seek(randomInt(0, audio.windLong.duration()));
+            audio.windLong.fade(0, audio.windLong.volume(), 4000);
+
+
+            entities.killedCount = 0;
+            player.rotation = 0;
+            player.delayedRotation = 0;
+            player.position.x = innerWidth / 2;
+            player.position.y = innerHeight + player.height;
+            player.hasPreviouslyUsedKeyboard = true;
+
+        }
+
+        function play() {
+
+            clearGraphics();
+            drawBackgroundEllipse(.4);
+            drawBackgroundRectangle(.4);
+
+            if (shouldDrawBigMap) {
+                drawMap(hud.map.margin, hud.map.margin, (1 / mapGraphics.scale.x * innerWidth) - 2 * hud.map.margin, (1 / mapGraphics.scale.y * (innerHeight - (innerHeight - hud.textHealthBar.position.y + hud.textHealthBar.height * 1.2))) - 2 * hud.map
+                    .margin, .4, hud.map.blipSize / (hud.map.displayMultiplier / 2.5));
+            } else {
+                drawMap(hud.map.margin, hud.map.margin, hud.map.width, hud.map.height, .4, hud.map.blipSize);
+            }
+
+
+            currentMouseX = renderer.plugins.interaction.mouse.global.x;
+            currentMouseY = renderer.plugins.interaction.mouse.global.y;
+
+            makePlaneSmaller();
+            moveWaterBack();
+
+            showPlayerDeathEffect();
+
+            playKeyboardInput();
+
+
+            if (shouldMoveUp) {
+                player.position.y = player.position.y - player.recenterMoveSpeed;
+            }
+
+            if (shouldMoveLeft) {
+                player.position.x = player.position.x - player.recenterMoveSpeed;
+            }
+
+            if (shouldMoveDown) {
+                player.position.y = player.position.y + player.recenterMoveSpeed;
+            }
+
+            if (shouldMoveRight) {
+                player.position.x = player.position.x + player.recenterMoveSpeed;
+            }
+
+            entityMechanics();
+
+            hud.textDistanceTravelled.text = (Math.round(parseInt(hud.textDistanceTravelled.text) + 6) + "m");
+
+            regenBarMechanics();
+
+        }
+
+        function playKeyboardInput() {
+
+            if (!player.hasPreviouslyUsedKeyboard) {
+                movePlayerTowardsSpot(currentMouseX, currentMouseY);
+            }
+
+            if (keysPressed[81]) {
+                player.rotation -= Math.PI / 100;
+                ///setTimeout(function() {
+                player.delayedRotation = player.rotation;
+                ///}, 1000);
+            }
+            if (keysPressed[69]) {
+                player.rotation += Math.PI / 100;
+                //setTimeout(function() {
+                player.delayedRotation = player.rotation;
+                //}, 1000);
+            }
+
+            if (keysPressed[87] === true && player.position.y > 0) {
+
+                player.position.y = player.position.y - 8;
+                player.hasPreviouslyUsedKeyboard = true;
+            }
+            if (keysPressed[65] === true && player.position.x > 0) {
+
+                player.position.x = player.position.x - 8;
+                player.hasPreviouslyUsedKeyboard = true;
+            }
+            if (keysPressed[83] === true && player.position.y < innerHeight) {
+
+                player.position.y = player.position.y + 8;
+                player.hasPreviouslyUsedKeyboard = true;
+
+            }
+            if (keysPressed[68] === true && player.position.x < innerWidth) {
+
+                player.position.x = player.position.x + 8;
+                player.hasPreviouslyUsedKeyboard = true;
+            }
+        }
+
+        function regenBarMechanics() {
+            drawRegenBar(hud.regenBar.width, hud.regenBar.height, hud.regenBar.color);
+
+            if (isHoldingMouse && player.canShoot && !hud.regenBar.shouldRecharge) {
+                hud.regenBar.width -= 1.2 * screenRatio;
+            }
+
+            if (hud.regenBar.width < hud.regenBar.maxWidth && !isHoldingMouse) {
+                hud.regenBar.shouldRecharge = true;
+            }
+
+            if (hud.regenBar.width <= 2) {
+                player.canShoot = false;
+            }
+
+            if (hud.regenBar.width >= hud.regenBar.maxWidth && hud.regenBar.shouldRecharge) {
+                audio.recharge.play();
+                hud.regenBar.color = 0xFFFFFF;
+                player.canShoot = true;
+                hud.regenBar.shouldRecharge = false;
+            }
+            if (isHoldingMouse && player.canShoot && hud.regenBar.shouldRecharge) {
+                hud.regenBar.shouldRecharge = false;
+            }
+
+
+
+            if (hud.regenBar.shouldRecharge) {
+                hud.regenBar.width += 1 * screenRatio;
+            }
+        }
+
+        function entityMechanics() {
+            for (i = 0; i < entities.container.children.length; i++) {
+                if (entities.container.getChildAt(i).position.y < innerHeight * 10 &&
+                    entities.container.getChildAt(i).position.y > -innerHeight * 10 &&
+                    entities.container.getChildAt(i).position.x < innerWidth * 10 &&
+                    entities.container.getChildAt(i).position.x > -innerWidth * 10
+                ) {
+
+                    if (entities.container.getChildAt(i).type === "projectile") {
+                        drawProjectile(entities.container.getChildAt(i));
+                    } else {
+                        entities.container.getChildAt(i).position.y += entities.container.getChildAt(i).speed * Math.cos(entities.container.getChildAt(i).rotation) + player.speed * Math.cos(player.rotation);
+                        entities.container.getChildAt(i).position.x -= entities.container.getChildAt(i).speed * Math.sin(entities.container.getChildAt(i).rotation) + player.speed * Math.sin(player.rotation);
+
+
+                        var e = {
+                            r: entities.container.getChildAt(i).width / 2.15,
+                            x: entities.container.getChildAt(i).position.x,
+                            y: entities.container.getChildAt(i).position.y
+                        };
+
+                        var p = {
+                            r: player.width / 2.15,
+                            x: player.position.x,
+                            y: player.position.y + player.height / 4
+                        }
+
+                        var dx = p.x - e.x;
+                        var dy = p.y - e.y;
+
+                        var distance = Math.sqrt(dx * dx + dy * dy);
+
+
+                        switch (entities.container.getChildAt(i).type) {
+                            case "enemyPlane":
+                                if (distance < innerWidth / 1.5 || distance < innerHeight / 1.5) {
+
+                                    //TODO MOVE ENEMIES TOWARDS PLAYER
+
+                                }
+                                var canBeHitAgain = true;
+                                if (canBeHitAgain) {
+                                    if (distance < (p.r + e.r) / 1.6) {
+                                        canBeHitAgain = false;
+                                        player.canBeHitAgainTimeout(canBeHitAgain);
+                                        moveOutOfTheWay(entities.container.getChildAt(i));
+
+                                    } else if (distance < (p.r + e.r) / 1.3) {
+                                        canBeHitAgain = false;
+                                        player.canBeHitAgainTimeout(canBeHitAgain);
+                                        moveOutOfTheWay(entities.container.getChildAt(i));
+
+                                    } else if (distance < (p.r + e.r) / 1.1) {
+                                        canBeHitAgain = false;
+                                        player.canBeHitAgainTimeout(canBeHitAgain);
+                                        moveOutOfTheWay(entities.container.getChildAt(i));
+
+                                    }
+                                }
+                                break;
+                            case "health":
+                                if (player.health > 0 && distance < (p.r + e.r / 1.0)) {
+                                    entities.container.removeChild(entities.container.getChildAt(i));
+                                    player.health--;
+                                    hud.regenBar.width = hud.regenBar.maxWidth;
+                                    player.canShoot = true;
+                                    healthBarRecheck();
+                                }
+                                break;
+
+                            case "flashlight":
+
+                                break;
+
+                            case "rocket":
+
+                                break;
+
+                        }
+                    }
+
+
+                } else {
+                    entities.container.removeChild(entities.container.getChildAt(i));
+
+                }
+            }
+        }
+
+        player.canBeHitAgainTimeout = function(reference) {
+            setTimeout(function() {
+                reference = true;
+            }, 1000)
+        }
+
+        function moveOutOfTheWay(enemy) {
+            player.hasPreviouslyUsedKeyboard = true;
+            player.hit();
+            player.recenterMoveSpeed = player.recenterMoveSpeedORIGINAL / 2;
+            if (player.position.x > enemy.position.x && player.position.x < innerWidth + player.width) {
+
+                shouldMoveRight = true;
+
+
+            } else if (player.position.x < enemy.position.x && player.position.x > 0 - player.width) {
+
+                shouldMoveLeft = true;
+
+            }
+
+            if (player.position.y > enemy.position.y && player.position.y < innerHeight + player.height) {
+
+                shouldMoveDown = true;
+
+            } else if (player.position.y < enemy.position.y && player.position.y > 0 - player.height) {
+
+                shouldMoveUp = true;
+
+            }
+
+            setTimeout(function() {
+                shouldMoveUp = false;
+                shouldMoveDown = false;
+                shouldMoveLeft = false
+                shouldMoveRight = false;
+            }, 100);
+
+        }
+
+        function gameOverMenu() {
+            clearGraphics();
+
+
+            drawBackgroundRectangle(.6);
+            drawBackgroundEllipse(.4);
+            drawRegenBar(hud.regenBar.width, hud.regenBar.height, hud.regenBar.color);
+        }
+
+        function pauseMenu() {
+            clearGraphics();
+
+
+            drawBackgroundRectangle(.6);
+            drawRegenBar(hud.regenBar.width, hud.regenBar.height, hud.regenBar.color);
+        }
+
+        function mainMenu() {
+            ///makePlaneBigger();
+
+
+            clearGraphics();
+
+            moveWaterBack();
+
+            drawBackgroundRectangle(.6);
+
+            var lastChildInContainer = mainMenuContainer.getChildAt(mainMenuContainer.children.length - 1);
+            if (player.position.y > (innerHeight + lastChildInContainer.position.y + lastChildInContainer.height / 2) / 2) {
+                player.position.y -= 3;
+            }
+
+        }
+
+        function resumeGame() {
+            showOrHideCursor();
+            menusContainer.removeChildren();
+            visualsContainer.setChildIndex(graphics, 1);
+            stage.addChild(hud);
+            state = play;
+        }
+
+
+        function makePlaneSmaller() {
+            if (player.scale.x > player.scale.original) {
+                player.scale.set(player.scale.x - player.scale.x * 0.008, player.scale.y - player.scale.y * 0.008)
+            }
+        }
+
+        function makePlaneBigger() {
+            if (player.scale.x < player.scale.double) {
+                player.scale.set(player.scale.x + player.scale.x * 0.008, player.scale.y + player.scale.y * 0.008);
+            }
+        }
+
+        function moveWaterBack() {
+            var backgroundDeltaY = player.speed * Math.cos(player.rotation);
+            var backgroundDeltaX = player.speed * Math.sin(player.rotation);
+            background.tilePosition.y += backgroundDeltaY;
+            background.tilePosition.x -= backgroundDeltaX;
+        }
+
+        entities.addProjectile = function(origin, image) {
+            if (state === play) {
+                var proj = new PIXI.Sprite.fromImage(image);
+                proj.anchor.set(.5, .5);
+                proj.scale.set(.15, .08);
+                proj.type = "projectile";
+
+                if (origin === "player") {
+                    audio.playerShot.play();
+                    proj.position.set(player.position.x, player.position.y);
+                    proj.rotation = Math.PI / 2 + player.rotation;
+                    proj.origin = "player";
+                } else if (entities.container.getChildAt(origin).position.x > -innerWidth / 2 &&
+                    entities.container.getChildAt(origin).position.x < innerWidth * 1.5 &&
+                    entities.container.getChildAt(origin).position.y > -innerHeight / 2 &&
+                    entities.container.getChildAt(origin).position.y < innerHeight * 1.5) {
+                    audio.enemyShot.play();
+                    proj.position.set(entities.container.getChildAt(origin).position.x, entities.container.getChildAt(origin).position.y, origin);
+                    proj.rotation = Math.PI / 2 + entities.container.getChildAt(origin).rotation;
+                    proj.speed = entities.container.getChildAt(origin).projectileSpeed;
+                    proj.origin = origin;
+                } else {
+                    return;
+                }
+                movePlaneBackShootAnim(origin);
+                entities.container.addChild(proj);
+            }
+
+
+        }
+
+        function drawProjectile(projEntityRef) {
+
+            if (state === play) {
+
+
+                var currentEntityOriginX;
+                var currentEntityOriginY;
+
+
+                if (projEntityRef.origin === "player") {
+                    projEntityRef.position.y -= player.projectileSpeed * Math.cos(projEntityRef.rotation - Math.PI / 2);
+                    projEntityRef.position.x += player.projectileSpeed * Math.sin(projEntityRef.rotation - Math.PI / 2);
+
+
+                    currentEntityOriginX = player.position.x;
+                    currentEntityOriginY = player.position.y;
+
+
+                    for (x = 0; x < entities.container.children.length; x++) {
+
+                        if (entities.container.getChildAt(x).type === "enemyPlane") {
+
+                            if (projEntityRef.position.x > entities.container.getChildAt(x).position.x - entities.container.getChildAt(x).width / 2 &&
+                                projEntityRef.position.x < entities.container.getChildAt(x).position.x + entities.container.getChildAt(x).width / 2 &&
+                                projEntityRef.position.y < entities.container.getChildAt(x).position.y &&
+                                projEntityRef.position.y > entities.container.getChildAt(x).position.y - entities.container.getChildAt(x).height / 2) {
+                                audio.projectileHit.play();
+                                entities.container.removeChild(projEntityRef);
+
+                                entities.container.getChildAt(x).health--;
+                                switch (entities.container.getChildAt(x).health) {
+                                    case 2:
+                                        entities.container.getChildAt(x).tint = 0xFFDDDD;
+                                        break;
+                                    case 1:
+                                        entities.container.getChildAt(x).tint = 0xFFBBBB;
+                                        break;
+                                    case 0:
+                                        entities.container.removeChild(entities.container.getChildAt(x));
+                                        entities.killedCount++;
+                                        hud.textKills.text = entities.killedCount + skullIcon;
+                                        audio.explosion.play();
+                                        break;
+
+                                }
+                            }
+                        }
+
+
+                    }
+
+                } else {
+
+                    projEntityRef.position.y += projEntityRef.speed * Math.cos(projEntityRef.rotation - Math.PI / 2);
+                    projEntityRef.position.x -= projEntityRef.speed * Math.sin(projEntityRef.rotation - Math.PI / 2);
+
+                    currentEntityOriginX = entities.container.getChildAt(projEntityRef.origin).position.x;
+                    currentEntityOriginY = entities.container.getChildAt(projEntityRef.origin).position.y;
+
+
+                    if (projEntityRef.position.y > player.position.y - player.height / 2 &&
+                        projEntityRef.position.y < player.position.y + player.height / 2 &&
+                        projEntityRef.position.x > player.position.x - player.width / 2 &&
+                        projEntityRef.position.x < player.position.x + player.width / 2) {
+                        audio.projectileHit.play();
+                        entities.container.removeChild(projEntityRef);
+
+                        player.hit();
+                    }
+                }
+
+
+                if (projEntityRef.position.y < currentEntityOriginY - 2 * Math.max(innerWidth, innerHeight) ||
+                    projEntityRef.position.y > currentEntityOriginY + 2 * Math.max(innerWidth, innerHeight) ||
+                    projEntityRef.position.x < currentEntityOriginX - 2 * Math.max(innerWidth, innerHeight) ||
+                    projEntityRef.position.x > currentEntityOriginX + 2 * Math.max(innerWidth, innerHeight)) {
+
+                    entities.container.removeChild(projEntityRef);
+
+                    return;
+                }
+
+
+            }
+
+
+        }
+
+        player.hit = function() {
+            player.health++;
+            healthBarRecheck();
+        }
+
+        function movePlaneBackShootAnim(origin) {
+            if (state === play) {
+                if (origin === "player") {
+                    isShooting = true;
+
+                    var oldPositionX = player.position.x;
+                    var oldPositionY = player.position.y;
+
+                    var shootAnimInterval = setInterval(function() {
+
+                        player.position.x -= Math.sin(player.rotation);
+                        player.position.y += Math.cos(player.rotation);
+
+                    }, 1);
+
+
+                    var thisInterval = setInterval(function() {
+
+                        clearInterval(shootAnimInterval);
+                        clearInterval(thisInterval);
+                        player.position.y = oldPositionX;
+                        player.position.y = oldPositionY;
+                        isShooting = false;
+
+                    }, 40)
+                } else {
+                    var oldPositionX = entities.container.getChildAt(origin).position.x;
+                    var oldPositionY = entities.container.getChildAt(origin).position.y;
+
+                    var shootAnimInterval = setInterval(function() {
+
+                        entities.container.getChildAt(origin).position.x += Math.sin(entities.container.getChildAt(origin).rotation);
+                        entities.container.getChildAt(origin).position.y -= Math.cos(entities.container.getChildAt(origin).rotation);
+
+                    }, 1);
+
+
+                    var thisInterval = setInterval(function() {
+
+                        clearInterval(shootAnimInterval);
+                        clearInterval(thisInterval);
+                        entities.container.getChildAt(origin).position.set(oldPositionX, oldPositionY);
+
+                    }, 40)
+                }
+            }
+
+
+
+        }
+
+        function spawnEntity(type, image, scaleX, scaleY, rotation, speed, health, isHostile, canShoot, projectileImage, projectileFiringRate, projectileSpeed) {
+
+            var entity;
+            entity = new PIXI.Sprite.fromImage(image);
+            entity.type = type;
+            entity.scale.set(scaleX, scaleY);
+            entity.scale.originalX = scaleX;
+            entity.scale.originalY = scaleY;
+            entity.anchor.set(.5, .5);
+            entity.rotation = rotation;
+            entity.speed = speed;
+            entity.health = health;
+            entity.isHostile = isHostile;
+            entity.canShoot = canShoot;
+            entity.projectileImage = projectileImage;
+            entity.projectileFiringRate = projectileFiringRate;
+            entity.projectileSpeed = projectileSpeed;
+
+            entities.container.addChild(entity);
+
+            var multiplicationFactor = 100000000;
+            var randomRot = randomInt((player.delayedRotation - Math.PI / 4) * multiplicationFactor, (player.delayedRotation + Math.PI / 4) * multiplicationFactor);
+
+            var disX = innerWidth / 2 + entity.width;
+            var disY = innerHeight / 2 + entity.height;
+            var spawnCircleRadius = Math.sqrt(disX * disX + disY * disY);
+
+            var enemySpawnX = innerWidth / 2 + spawnCircleRadius * Math.sin(randomRot / multiplicationFactor);
+            var enemySpawnY = innerHeight / 2 - spawnCircleRadius * Math.cos(randomRot / multiplicationFactor);
+            entity.position.set(enemySpawnX, enemySpawnY);
+
+
+            if (entity.canShoot) {
+                entity.fireLoop = setInterval(function() {
+
+                    if (entity.canShoot && state === play) {
+                        var index = entities.container.getChildIndex(entity);
+                        if (index >= 0) {
+                            entities.addProjectile(index, entity.projectileImage);
+                        } else {
+                            clearInterval(entity.fireLoop);
+                        }
+                    }
+                }, entity.projectileFiringRate);
+            }
+
+        }
+
+        function spawnEnemy() {
+
+            setTimeout(function() {
+
+                if (state === play) {
+
+                    spawnEntity(
+                        "enemyPlane",
+                        'playerSprite1.png',
+                        entities.maxScale / (1 / .15), -entities.maxScale / (1 / .15),
+                        player.delayedRotation,
+                        entities.speed,
+                        entities.maxHealth,
+                        true,
+                        true,
+                        'laser.png',
+                        entities.projectileFiringRate + randomInt(-entities.projectileFiringRate / 2, entities.projectileFiringRate / 2),
+                        entities.projectileSpeedORIGINAL);
+
+
+
+                    var randomNumber = randomInt(0, 20);
+                    switch (randomNumber) {
+                        case 0:
+                            spawnEntity(
+                                "health",
+                                'health.png',
+                                entities.maxScale / 2, entities.maxScale / 2,
+                                0,
+                                0,
+                                0,
+                                false,
+                                false,
+                                null,
+                                null,
+                                null);
+                            break;
+                    }
+                }
+                spawnEnemy();
+            }, entities.spawnRate + randomInt(-entities.spawnRate, entities.spawnRate / 2));
+        }
+        spawnEnemy();
+
+        function movePlayerTowardsSpot(x, y) {
+            shouldMoveUp = false;
+            shouldMoveDown = false;
+            shouldMoveLeft = false;
+            shouldMoveRight = false;
+
+            var easingAmount = .05;
+            var xDistance = x - player.position.x;
+            var yDistance = y - player.position.y;
+            var distance = Math.sqrt(xDistance * xDistance + yDistance * yDistance);
+            if (distance > 1) {
+                player.position.x += xDistance * easingAmount;
+                player.position.y += yDistance * easingAmount;
+            }
+        }
+
+        function drawBackgroundEllipse(opacity) {
+            barGraphics.beginFill(0x000000, opacity);
+            barGraphics.drawEllipse(innerWidth / 2, innerHeight, innerWidth / 1.5, innerHeight - hud.textHealthBar.position.y + hud.textHealthBar.height * 1.2);
+            barGraphics.endFill();
+        }
+
+        function drawBackgroundRectangle(opacity) {
+            graphics.beginFill(0x000000, opacity);
+            graphics.drawRect(0, 0, innerWidth, innerHeight)
+            graphics.endFill();
+        }
+
+        function drawRegenBar(width, height, color) {
+            hud.regenBar.width = width;
+            barGraphics.beginFill(color);
+            barGraphics.drawRoundedRect(innerWidth / 2 - width / 2, innerHeight - height - 2, width, height, 5);
+            barGraphics.endFill();
+        }
+
+        function drawMap(x, y, width, height, opacity, blipSize) {
+            mapGraphics.beginFill(0x000000, opacity);
+            mapGraphics.drawRoundedRect(x, y, width, height, 5);
+            mapGraphics.endFill();
+
+
+
+            var mapBoxWidth = ((width / 2) * screenRatio) / (shouldDrawBigMap ? hud.map.displayMultiplier : 1);
+            var mapBoxHeight = ((height / 2) / screenRatio) / (shouldDrawBigMap ? hud.map.displayMultiplier : 1);
+
+            if (screenRatio < 1) {
+                mapBoxWidth = ((width / 2) * screenRatio) * screenRatio / (shouldDrawBigMap ? hud.map.displayMultiplier : 1);
+                mapBoxHeight = ((height / 2) / screenRatio) * screenRatio / (shouldDrawBigMap ? hud.map.displayMultiplier : 1);
+            }
+            if (screenRatio > 1) {
+                mapBoxWidth = ((width / 2) * screenRatio) / screenRatio / (shouldDrawBigMap ? hud.map.displayMultiplier : 1);
+                mapBoxHeight = ((height / 2) / screenRatio) / screenRatio / (shouldDrawBigMap ? hud.map.displayMultiplier : 1);
+            }
+
+
+            var mapBoxOriginX = width / 2 - mapBoxWidth / 2;
+            var mapBoxOriginY = height / 2 - mapBoxHeight / 2;
+
+            mapGraphics.beginFill(0xFFFFFF, opacity / 5);
+            mapGraphics.drawRect(x + mapBoxOriginX, y + mapBoxOriginY, mapBoxWidth, mapBoxHeight);
+            mapGraphics.endFill();
+
+
+
+            mapGraphics.beginFill(0x0000FF);
+            mapGraphics.drawCircle(x + mapBoxOriginX + (player.position.x / (innerWidth / mapBoxWidth)), y + mapBoxOriginY + (player.position.y / (innerHeight / mapBoxHeight)), blipSize);
+
+            /* PLAYER TRIANGLE MAP CODE
+            mapGraphics.lineStyle(1, 0xA83F39, opacity);
+            ///mapGraphics.moveTo(x + width/2 - mapBoxWidth /2 + (player.position.x / (innerWidth / mapBoxWidth)), y + height/2 - mapBoxHeight /2 +(player.position.y / (innerHeight / mapBoxHeight)) - 5);
+            ///mapGraphics.lineTo(x + width/2 - mapBoxWidth /2 + (player.position.x / (innerWidth / mapBoxWidth)) - 5, y +  height/2 - mapBoxHeight /2 +(player.position.y / (innerHeight / mapBoxHeight)) + 5);
+            ///mapGraphics.lineTo(x + width/2 - mapBoxWidth /2 + (player.position.x / (innerWidth / mapBoxWidth)) + 5, y +  height/2 - mapBoxHeight /2 +(player.position.y / (innerHeight / mapBoxHeight)) + 5);
+            mapGraphics.endFill();
+            */
+
+
+
+
+            for (i = 0; i < entities.container.children.length; i++) {
+
+                var enemyPositionOnMapX = mapBoxOriginX + (entities.container.getChildAt(i).position.x / (innerWidth / mapBoxWidth));
+                var enemyPositionOnMapY = mapBoxOriginY + (entities.container.getChildAt(i).position.y / (innerHeight / mapBoxHeight));
+
+
+                if (enemyPositionOnMapX > 0 &&
+                    enemyPositionOnMapX < width &&
+                    enemyPositionOnMapY > 0 &&
+                    enemyPositionOnMapY < height) {
+                    var disX = enemyPositionOnMapX - width / 2;
+                    var disY = enemyPositionOnMapY - height / 2;
+                    var distanceFromMiddle = Math.sqrt(disX * disX + disY * disY);
+
+
+                    var newOpacity = 0;
+                    if (newOpacity < 1) {
+                        if (width > hud.map.width) {
+                            newOpacity = -0.000015 * Math.pow(distanceFromMiddle, 2) + 1;
+                        } else {
+                            newOpacity = -0.00045 * Math.pow(distanceFromMiddle, 2) + 1;
+                        }
+
+                    }
+
+                    var circleSize = blipSize;
+
+                    switch (entities.container.getChildAt(i).type) {
+                        case "planeEnemy":
+                            mapGraphics.beginFill(0xA83F39, newOpacity);
+                            break;
+                        case "health":
+                            mapGraphics.beginFill(0x00FF00, newOpacity);
+                            break;
+                        case "flashlight":
+                            mapGraphics.beginFill(0x00FF00, newOpacity);
+                            break;
+                        case "rocket":
+                            mapGraphics.beginFill(0x00FF00, newOpacity);
+                            break;
+                        case "projectile":
+                            mapGraphics.beginFill(0xA83F39, newOpacity);
+                            circleSize = Math.PI / 2;
+                        default:
+                            mapGraphics.beginFill(0xA83F39, newOpacity);
+                            break;
+                    }
+
+                    mapGraphics.drawCircle(x + enemyPositionOnMapX, y + enemyPositionOnMapY, circleSize);
+                    mapGraphics.endFill();
+                }
+
+            }
+
+        }
+
+        function clearGraphics() {
+            graphics.clear();
+            barGraphics.clear();
+            mapGraphics.clear();
+        }
+
+        function doCirclesOverlap(x1, y1, r1, x2, y2, r2) {
+            var distance = Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
+            if (distance < r1 + r2) {
+                return true;
+            } else {
+                return false;
+            }
+        }
+
+        function onResize() {
+            resetPositions();
+            resetDimensions();
+            resetScales();
+        }
+
+        function resetPositions() {
+            hud.textHealthBar.position.set(innerWidth / 2, innerHeight - 22);
+            hud.textKills.position.set(innerWidth - 5, innerHeight);
+            hud.textDistanceTravelled.position.set(5, innerHeight);
+
+
+            texts.play.position.set(innerWidth / 2, innerHeight / 2 - texts.play.height);
+            texts.resume.position.set(innerWidth / 2, innerHeight / 2 - texts.resume.height * 1.2);
+            texts.options.position.set(innerWidth / 2, innerHeight / 2);
+            texts.mainMenu.position.set(innerWidth / 2, innerHeight / 2 + texts.mainMenu.height * 1.2);
+            texts.restart.position.set(innerWidth / 2, innerHeight / 2 - texts.restart.height * 1.2);
+            texts.pauseMenu.position.set(innerWidth / 2, (texts.resume.position.y - texts.resume.height / 2) / 2);
+            texts.gameOver.position.set(innerWidth / 2, (texts.restart.position.y - texts.restart.height / 2) / 2);
+            texts.gameName.position.set(innerWidth / 2, (texts.play.position.y - texts.play.height / 2) / 2);
+
+            if (state === mainMenu) {
+                player.position.x = innerWidth / 2;
+            }
+        }
+
+        function resetDimensions() {
+            background.width = innerWidth * 2 * 1 / background.scale.x;
+            background.height = innerHeight * 2 * 1 / background.scale.y;
+            renderer.resize(innerWidth, innerHeight);
+        }
+
+        function resetScales() {
+            screenRatio = innerWidth / innerHeight;
+
+            var multiplier = .8;
+
+            switch (true) {
+                case (screenRatio < multiplier):
+                    entities.maxScale = screenRatio * 1 / multiplier;
+                    background.scale.set(background.scale.original * screenRatio * 1 / multiplier, background.scale.original * screenRatio * 1 / multiplier);
+                    player.scale.set(player.scale.original * screenRatio * 1 / multiplier, player.scale.original * screenRatio * 1 / multiplier);
+                    for (var key in texts) {
+                        texts[key].scale.set(screenRatio * 1 / multiplier, screenRatio * 1 / multiplier);
+                    }
+                    for (i = 0; i < hud.children.length; i++) {
+                        switch (i) {
+                            case 0:
+                                // LEAVE EMPTY
+                                break;
+                            case 1:
+                                hud.getChildAt(i).scale.set(screenRatio * 1 / multiplier * 1.5, screenRatio * 1 / multiplier * 1.5);
+
+                                break;
+                            default:
+                                hud.getChildAt(i).scale.set(screenRatio * 1 / multiplier, screenRatio * 1 / multiplier);
+                        }
+
+                    }
+                    for (i = 0; i < entities.container.children.length; i++) {
+                        entities.container.getChildAt(i).scale.set(entities.container.getChildAt(i).scale.original * screenRatio * 1 / multiplier, -entities.container.getChildAt(i).scale.original * screenRatio * 1 / multiplier);
+                    }
+                    hud.regenBar.maxWidth = hud.regenBar.maxWidthORIGINAL * screenRatio;
+                    hud.regenBar.width = hud.regenBar.maxWidth;
+                    break;
+                default:
+                    entities.maxScale = 1;
+                    background.scale.set(background.scale.original, background.scale.original);
+                    player.scale.set(player.scale.original, player.scale.original);
+                    for (var key in texts) {
+                        texts[key].scale.set(1, 1);
+                    }
+                    for (i = 0; i < hud.children.length; i++) {
+                        switch (i) {
+                            case 0:
+                                // LEAVE EMPTY
+                                break;
+                            case 1:
+                                hud.getChildAt(i).scale.set(multiplier * (1 / multiplier) * 1.5, multiplier * (1 / multiplier) * 1.5);
+
+                                break;
+                            default:
+                                hud.getChildAt(i).scale.set(1, 1);
+
+                        }
+                    }
+                    for (i = 0; i < entities.container.children.length; i++) {
+                        entities.container.getChildAt(i).scale.set(entities.container.getChildAt(i).scale.original, -entities.container.getChildAt(i).scale.original);
+                    }
+                    hud.regenBar.maxWidth = hud.regenBar.maxWidthORIGINAL * screenRatio;
+                    hud.regenBar.width = hud.regenBar.maxWidth;
+                    break;
+
+            }
+
+
+
+        }
+
+        function randomInt(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+    </script>
+</body>
+
+</html>

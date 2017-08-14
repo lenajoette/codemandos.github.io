@@ -1,0 +1,62 @@
+body{
+  background-color: black;
+  color: gold;
+  text-align: center;
+}
+
+
+ul {
+  position: fixed;
+  width: 100%;
+  top:0;
+  left:0;
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background-color: gold;
+}
+
+li {
+    float: left;
+    padding: 15;
+    margin: 5 5 5 5;
+    background: gold;
+    color: black;
+    font-size: 20px;
+    font-weight: bold;
+}
+
+li a {
+    display: block;
+    color: white;
+    text-align: center;
+    padding: 14px 16px;
+    text-decoration: none;
+}
+
+
+.header{
+ margin-top: 80;
+  outline-color: gold;
+  outline-width: thick;
+  outline-style:dashed;
+}
+
+#hhsLogo {
+  width: auto;
+  height: 250px;
+}
+#welcome{
+font-weight: lighter;
+font-size: 35px;
+font-family:fantasy;
+}
+
+.footer{
+
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+
+}

@@ -1,0 +1,422 @@
+.fadein1 {
+    opacity: 0;
+    animation: fadein 2s;
+    animation-delay: .2s;
+    animation-fill-mode: forwards;
+}
+
+.fadein2 {
+    opacity: 0;
+    animation: fadein 2s;
+    animation-delay: .6s;
+    animation-fill-mode: forwards;
+}
+
+.fadein3 {
+    opacity: 0;
+    animation: fadein 2s;
+    animation-delay: 1s;
+    animation-fill-mode: forwards;
+}
+
+.fadein4 {
+    opacity: 0;
+    animation: fadein 2s;
+    animation-delay: 1.4s;
+    animation-fill-mode: forwards;
+}
+
+.fadein5 {
+    opacity: 0;
+    animation: fadein 2s;
+    animation-delay: 1.8s;
+    animation-fill-mode: forwards;
+}
+
+.fadein6 {
+    opacity: 0;
+    animation: fadein 2s;
+    animation-delay: 2.2s;
+    animation-fill-mode: forwards;
+}
+
+.fadein7 {
+    opacity: 0;
+    animation: fadein 2s;
+    animation-delay: 2.6s;
+    animation-fill-mode: forwards;
+}
+
+.fadein8 {
+    opacity: 0;
+    animation: fadein 2s;
+    animation-delay: 3s;
+    animation-fill-mode: forwards;
+}
+
+.fadein9 {
+    opacity: 0;
+    animation: fadein 2s;
+    animation-delay: 3.4s;
+    animation-fill-mode: forwards;
+}
+
+.fadein10 {
+    opacity: 0;
+    animation: fadein 2s;
+    animation-delay: 3.8s;
+    animation-fill-mode: forwards;
+}
+
+.fadeinmarquee {
+    opacity: 0;
+    animation: fadein 6s;
+    animation-delay: 4s;
+    animation-fill-mode: forwards;
+}
+
+@keyframes fadein {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.titleTextStyle {
+    text-align: right;
+    margin-top: 2%;
+    margin-right: 2%;
+    font-size: 10vmin;
+    float: right;
+    opacity: 0;
+    animation: titleTextStyle 2s;
+    animation-delay: .2s;
+    animation-fill-mode: forwards;
+}
+
+@keyframes titleTextStyle {
+    0% {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    90% {
+        transform: translateX(-12%);
+        opacity: 1;
+    }
+    100% {
+        transform: translateX: (0%);
+        opacity: 1;
+    }
+}
+
+.bodyDivStyle {
+    margin-right: 3%;
+    width: 100%;
+    float: right;
+}
+
+.bodyTextStyle {
+    color: white;
+    font-size: 5.5vmin;
+}
+
+.bodyTextStyleSmaller {
+    color: white;
+    font-size: 4.5vmin;
+}
+
+.menuStyle {
+    width: 15vmin;
+    height: auto;
+    position: absolute;
+    float: left;
+    margin-top: 2vmin;
+    margin-left: 3vmin;
+    opacity: 0;
+    animation: menuStyle 1s;
+    animation-fill-mode: forwards;
+}
+
+@keyframes menuStyle {
+    0% {
+        opacity: 0;
+        width: 15vmin;
+        height: auto;
+    }
+    50% {
+        width: 20vmin;
+        height: auto;
+    }
+    100% {
+        opacity: 1;
+        width: 15vmin;
+        height: auto;
+    }
+}
+
+.welcomeTextStyle {
+    margin-right: 3vmin;
+    opacity: 0;
+    animation: welcomeTextStyle 2s;
+    animation-delay: 2.5s;
+    animation-fill-mode: forwards;
+}
+
+@keyframes welcomeTextStyle {
+    0% {
+        transform: translateX(100%) rotate(-120deg);
+        color: #DDAF26;
+        opacity: 0;
+    }
+    30% {
+        transform: translateX(0%) translateY(-500%) rotate(110deg);
+    }
+    100% {
+        transform: translateX(0px) translateY(150%) rotate(0deg);
+        color: white;
+        opacity: 1;
+    }
+}
+
+.computerScienceClubStyle {
+    opacity: 0;
+    animation: computerScienceClubStyle 2s;
+    animation-delay: .6s;
+    animation-fill-mode: forwards;
+}
+
+@keyframes computerScienceClubStyle {
+    0% {
+        transform: translateX(100%) translateY(20%);
+        opacity: 0;
+    }
+    90% {
+        transform: translateX(-20%) translateY(20%);
+    }
+    100% {
+        transform: translateX(0px) translateY(20%);
+        opacity: 1;
+    }
+}
+
+.HHSLogoAnimation {
+    float: right;
+    height: 35vh;
+    width: auto;
+    margin-right: 3%;
+    opacity: 0;
+    animation: HHSLogoAnimation 2s;
+    animation-delay: .2s;
+    animation-fill-mode: forwards;
+}
+
+.SlackLogoAnimation {
+    float: right;
+    height: 10vmax;
+    width: auto;
+    margin-top: 1%;
+    margin-right: 3%;
+    opacity: 0;
+    animation: HHSLogoAnimation 2s;
+    animation-delay: .2s;
+    animation-fill-mode: forwards;
+}
+
+.GitHubLogoAnimation {
+    float: right;
+    height: 35vmin;
+    width: auto;
+    margin-top: 1%;
+    margin-right: 3%;
+    opacity: 0;
+    animation: HHSLogoAnimation 2s;
+    animation-delay: .2s;
+    animation-fill-mode: forwards;
+}
+
+@keyframes HHSLogoAnimation {
+    0% {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    90% {
+        transform: translateX(-12%);
+        opacity: 1;
+    }
+    100% {
+        transform: translateX: (0%);
+        opacity: 1;
+    }
+}
+
+ul {
+    padding-left: 3%;
+    padding-right: 3%;
+}
+
+ul li {
+    padding-top: .7%;
+    padding-bottom: .7%;
+}
+
+head, body {
+    overflow-x: hidden;
+    display: block;
+    background-color: black;
+    -moz-user-select: none;
+    -webkit-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -o-user-select: none;
+}
+
+.noscroll {
+    overflow-x: none;
+    overflow-y: none;
+}
+
+.verticalCenter {
+    position: absolute;
+    top: 50%;
+    right: 3%;
+    transform: translate(0, -50%)
+}
+
+.rtl {
+    direction: rtl;
+}
+
+.link {
+    color: inherit;
+    text-decoration: none;
+}
+
+a:hover {
+    opacity: .7;
+}
+
+.bottomRightStyle {
+    position: absolute;
+    bottom: 5%;
+    right: 4%;
+}
+
+.extrasize {
+    font-size: 1000%;
+}
+
+.extrasizemain23 {
+    font-size: 6.5vmin;
+}
+
+.extrasize1 {
+    font-size: 4vmin;
+}
+
+.textright {
+    margin-right: 5vmin;
+    margin-left: 5vmin;
+    float: right;
+}
+
+.homeMarquee {
+    position: absolute;
+    bottom: 3%;
+white-space:nowrap;
+}
+
+.marqueeTextStyle {
+    opacity: .6;
+    font-size: 3vh;
+}
+
+marquee a {
+    margin-right: 8%;
+}
+
+
+/* The side navigation menu */
+
+.sidenav {
+    height: 100%;
+    /* 100% Full-height */
+    width: 0;
+    /* 0 width - change this with JavaScript */
+    position: fixed;
+    /* Stay in place */
+    z-index: 1;
+    /* Stay on top */
+    top: 0;
+    left: 0;
+    background-color: #DDAF26;
+    /* Black*/
+    overflow-x: hidden;
+    /* Disable horizontal scroll */
+    overflow-y: hidden;
+    /* Disable horizontal scroll */
+    padding-top: 8vh;
+    transition: 0.5s;
+    /* 0.5 second transition effect to slide in the sidenav */
+}
+
+
+/* The navigation menu links */
+
+.sidenav a {
+    padding: 8px 8px 8px 8px;
+    text-decoration: none;
+    font-size: 5vh;
+    color: #000000;
+    display: block;
+    transition: 0.3s
+}
+
+
+/* When you mouse over the navigation links, change their color */
+
+.sidenav a:hover, .offcanvas a:focus {
+    color: #FFFFFF;
+}
+
+
+/* Position and style the close button (top right corner) */
+
+.sidenav .closebtn {
+    position: absolute;
+    top: 0;
+    right: 30px;
+    font-size: 7vh;
+    margin-left: 50px;
+}
+
+
+/* The navigation menu links */
+
+.sidenav a {
+    padding: 8px 8px 8px 8px;
+    text-decoration: none;
+    font-size: 5vh;
+    color: #000000;
+    display: block;
+    transition: 0.3s
+}
+
+
+/* When you mouse over the navigation links, change their color */
+
+.sidenav a:hover, .offcanvas a:focus {
+    color: #FFFFFF;
+}
+
+
+/* Position and style the close button (top right corner) */
+
+.sidenav .closebtn {
+    position: absolute;
+    top: 0;
+    right: 30px;
+    font-size: 7vh;
+    margin-left: 50px;
+}
