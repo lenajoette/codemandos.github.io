@@ -1,3 +1,7 @@
+.margins{
+  margin: 3% 3% 3% 3%;
+}
+
 .fadein1 {
     opacity: 0;
     animation: fadein 2s;
@@ -68,10 +72,10 @@
     animation-fill-mode: forwards;
 }
 
-.fadeinmarquee {
+.fadeInMarquee {
     opacity: 0;
-    animation: fadein 6s;
-    animation-delay: 4s;
+    animation: fadein 5s;
+    animation-delay: 2s;
     animation-fill-mode: forwards;
 }
 
@@ -84,56 +88,7 @@
     }
 }
 
-.titleTextStyle {
-    text-align: right;
-    margin-top: 2%;
-    margin-right: 2%;
-    font-size: 10vmin;
-    float: right;
-    opacity: 0;
-    animation: titleTextStyle 2s;
-    animation-delay: .2s;
-    animation-fill-mode: forwards;
-}
-
-@keyframes titleTextStyle {
-    0% {
-        transform: translateX(100%);
-        opacity: 0;
-    }
-    90% {
-        transform: translateX(-12%);
-        opacity: 1;
-    }
-    100% {
-        transform: translateX: (0%);
-        opacity: 1;
-    }
-}
-
-.bodyDivStyle {
-    margin-right: 3%;
-    width: 100%;
-    float: right;
-}
-
-.bodyTextStyle {
-    color: white;
-    font-size: 5.5vmin;
-}
-
-.bodyTextStyleSmaller {
-    color: white;
-    font-size: 4.5vmin;
-}
-
 .menuStyle {
-    width: 15vmin;
-    height: auto;
-    position: absolute;
-    float: left;
-    margin-top: 2vmin;
-    margin-left: 3vmin;
     opacity: 0;
     animation: menuStyle 1s;
     animation-fill-mode: forwards;
@@ -142,16 +97,16 @@
 @keyframes menuStyle {
     0% {
         opacity: 0;
-        width: 15vmin;
+        width: 13vmin;
         height: auto;
     }
     50% {
-        width: 20vmin;
+        width: 18vmin;
         height: auto;
     }
     100% {
         opacity: 1;
-        width: 15vmin;
+        width: 13vmin;
         height: auto;
     }
 }
@@ -180,75 +135,10 @@
     }
 }
 
-.computerScienceClubStyle {
-    opacity: 0;
-    animation: computerScienceClubStyle 2s;
-    animation-delay: .6s;
-    animation-fill-mode: forwards;
-}
 
-@keyframes computerScienceClubStyle {
-    0% {
-        transform: translateX(100%) translateY(20%);
-        opacity: 0;
-    }
-    90% {
-        transform: translateX(-20%) translateY(20%);
-    }
-    100% {
-        transform: translateX(0px) translateY(20%);
-        opacity: 1;
-    }
-}
-
-.HHSLogoAnimation {
-    float: right;
-    height: 35vh;
-    width: auto;
-    margin-right: 3%;
-    opacity: 0;
-    animation: HHSLogoAnimation 2s;
-    animation-delay: .2s;
-    animation-fill-mode: forwards;
-}
-
-.SlackLogoAnimation {
-    float: right;
-    height: 10vmax;
-    width: auto;
-    margin-top: 1%;
-    margin-right: 3%;
-    opacity: 0;
-    animation: HHSLogoAnimation 2s;
-    animation-delay: .2s;
-    animation-fill-mode: forwards;
-}
-
-.GitHubLogoAnimation {
-    float: right;
-    height: 35vmin;
-    width: auto;
-    margin-top: 1%;
-    margin-right: 3%;
-    opacity: 0;
-    animation: HHSLogoAnimation 2s;
-    animation-delay: .2s;
-    animation-fill-mode: forwards;
-}
-
-@keyframes HHSLogoAnimation {
-    0% {
-        transform: translateX(100%);
-        opacity: 0;
-    }
-    90% {
-        transform: translateX(-12%);
-        opacity: 1;
-    }
-    100% {
-        transform: translateX: (0%);
-        opacity: 1;
-    }
+.HHSLogo {
+  height: 25vh;
+  width: auto;
 }
 
 ul {
@@ -322,18 +212,15 @@ a:hover {
 }
 
 .homeMarquee {
-    position: absolute;
+    position: fixed;
     bottom: 3%;
-white-space:nowrap;
+    white-space:nowrap;
 }
 
-.marqueeTextStyle {
-    opacity: .6;
-    font-size: 3vh;
-}
-
-marquee a {
-    margin-right: 8%;
+.homeMarquee a {
+  font-size: 23px;
+  color: white;
+  margin-right: 8%;
 }
 
 
